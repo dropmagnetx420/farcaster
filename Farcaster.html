@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Farcaster Badge Auto-Mint</title>
+<script src="https://cdn.jsdelivr.net/npm/ethers/dist/ethers.min.js"></script>
+<style>
+body { font-family: Arial; background:#111; color:#fff; text-align:center; padding:20px;}
+button { padding:10px 20px; margin:10px; font-size:16px; cursor:pointer; }
+#badges { display:flex; flex-wrap:wrap; justify-content:center; margin-top:20px;}
+.badge { width:120px; height:120px; margin:10px; border-radius:10px; background:#333; display:flex; align-items:center; justify-content:center; }
+canvas { display:none; }
+</style>
+</head>
+<body>
+
+<h1>Farcaster Badge Auto-Mint Demo</h1>
+<button id="connectWallet">Connect Wallet</button>
+<button id="simulateMilestone" disabled>Simulate Milestone</button>
+<div id="badges"></div>
+<canvas id="canvas" width="500" height="500"></canvas>
+
+<script>
+let provider, signer, userAddress;
+const contractAddress = "YOUR_SMART_CONTRACT_ADDRESS";
+const abi = [
+    "function mintBadge(address to, string memory tokenURI) external"
+];
+const badgesDiv = document.getElementById('badges');
+const connectBtn = document.getElementById('connectWallet');
+const milestoneBtn = document.getElementById('simulateMilestone');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+
+// Wallet Connect
+connectBtn.onclick = async () => {
+    if(window.ethereum){
+        provider = new ethers.BrowserProvider(window.ethereum);
+        await provider.send("eth_requestAccounts", []);
+        signer = await provider.getSigner();
+        userAddress = await signer.getAddress();
+        connectBtn.textContent = "Wallet Connected";
+        milestoneBtn.disabled = false;
+    } else {
+        alert("Install MetaMask/Base Wallet");
+    }
+};
+
+// Simulate Milestone
+milestoneBtn.onclick = async () => {
+    const user = {
+        name: "FarcasterUser",
+        profilePicUrl: "https://i.pravatar.cc/500",
+        milestone: "First Post"
+    };
+
+    // 1️⃣ Generate Dynamic Badge
+    const blob = await generateBadge(user.name, user.profilePicUrl, user.milestone);
+
+    // 2️⃣ Upload to IPFS (simulation, replace with actual IPFS upload)
+    const ipfsURI = "ipfs://SIMULATED_CID/" + Date.now() + ".png";
+
+    // 3️⃣ Mint NFT
+    await mintNFT(userAddress, ipfsURI);
+
+    // 4️⃣ Show in gallery
+    const div = document.createElement("div");
+    div.className = "badge";
+    const img = document.createElement("img");
+    img.src = URL.createObjectURL(blob);
+    img.style.width="100%";
+    img.style.height="100%";
+    div.appendChild(img);
+    badgesDiv.appendChild(div);
+
+    alert("Badge Minted! (Simulation)");
+};
+
+// Generate Dynamic Badge using Canvas
+async function generateBadge(userName, profilePicUrl, milestoneName){
+    return new Promise((resolve)=>{
+        const img = new Image();
+        img.crossOrigin = "anonymous";
+        img.src = profilePicUrl;
+        img.onload = ()=>{
+            ctx.clearRect(0,0,500,500);
+            ctx.drawImage(img,0,0,500,500);
+            // Milestone badge overlay
+            ctx.fillStyle = "rgba(255,215,0,0.8)";
+            ctx.beginPath();
+            ctx.arc(450,50,40,0,2*Math.PI);
+            ctx.fill();
+            ctx.fillStyle="#111";
+            ctx.font="bold 20px Arial";
+            ctx.fillText(milestoneName,430,55);
+            // Username
+            ctx.fillStyle="#fff";
+            ctx.font="bold 30px Arial";
+            ctx.fillText(userName,20,470);
+            canvas.toBlob((blob)=>{ resolve(blob); });
+        };
+    });
+}
+
+// Mint NFT (Simulation, replace with ethers.js contract call)
+async function mintNFT(to, ipfsURI){
+    const contract = new ethers.Contract(contractAddress, abi, signer);
+    // Uncomment below to call actual Base Chain contract
+    // const tx = await contract.mintBadge(to, ipfsURI);
+    // await tx.wait();
+    console.log("NFT minted to:", to, ipfsURI);
+}
+</script>
+
+</body>
+</html>
